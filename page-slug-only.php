@@ -20,6 +20,18 @@ class Page_Slug_URLs
 		add_filter( 'posts_where', array( $this, 'filter_posts_where' ), 99, 2 );
 	}
 
+	protected function _get_page_by_slug( $slug = '' )
+	{
+		global $wpdb;
+		$select = "SELECT ID FROM {$wpdb->posts} WHERE post_name = %s";
+		$page_id = $wpdb->get_var( $wpdb->prepare(
+			$select,
+			$slug
+		) );
+
+		return get_post( $page_id );
+	}
+
 	public function event_init()
 	{
 		global $wp;
@@ -52,6 +64,12 @@ class Page_Slug_URLs
 			$query->is_page = true;
 			$query->is_single = false;
 			$pagename = sanitize_title_for_query( wp_basename( $query->query_vars['specific_pagename'] ) );
+			$_page = $this->_get_page_by_slug( $pagename );
+			if ( ! empty( $_page ) ) {
+				$query->queried_object = $_page;
+				$query->queried_object_id = (int) $_page->ID;
+			}
+
 			$w = str_replace( " AND ({$wpdb->posts}.ID = '0')", '', $w );
 			$w = str_replace( array( 
 				"post_type = 'page'",
